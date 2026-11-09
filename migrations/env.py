@@ -6,6 +6,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+import app.contacts.models
+import app.customers.models
+import app.invoices.models  # noqa: F401
 from database import DATABASE_URL, Base
 
 # this is the Alembic Config object, which provides

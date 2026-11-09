@@ -4,9 +4,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
-from database import Customer, Invoice, Session
+from app.customers.models import Customer
+from app.customers.router import router as customers_router
+from app.invoices.models import Invoice
+from database import Session
 
 app = FastAPI()
+app.include_router(customers_router)
 
 
 class InvoicePreview(BaseModel):
@@ -20,49 +24,6 @@ class InvoicePreview(BaseModel):
 
 class InvoiceResponse(InvoicePreview):
     id: int
-
-
-class CustomerCreate(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    name: str = Field(min_length=1, max_length=100)
-
-
-class CustomerResponse(CustomerCreate):
-    id: int
-
-
-@app.post("/customer/create", response_model=CustomerResponse, status_code=201)
-async def create_customer(customer: CustomerCreate):
-    async with Session.begin() as session:
-        record = Customer(name=customer.name)
-        session.add(record)
-        await session.flush()
-        response = CustomerResponse.model_validate(record, from_attributes=True)
-
-    return response
-
-
-@app.get("/customer/getAll", response_model=list[CustomerResponse], status_code=201)
-async def getALLCustomers():
-    async with Session.begin() as session:
-        statement = select(Customer).order_by(Customer.id)
-        result = await session.scalars(statement)
-
-        return [
-            CustomerResponse.model_validate(record, from_attributes=True)
-            for record in result.all()
-        ]
-
-
-@app.get("/customer/{customer_id}", response_model=CustomerResponse, status_code=201)
-async def get_customer(customer_id: int):
-    async with Session.begin() as session:
-        record = await session.get(Customer, customer_id)
-        if record is None:
-            raise HTTPException(404, "Not Found!")
-        else:
-            return CustomerResponse.model_validate(record, from_attributes=True)
 
 
 @app.post(
