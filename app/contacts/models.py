@@ -16,7 +16,7 @@ class ContactPhone(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "kind IN ('mobile', 'work')",
+            "kind IN ('mobile', 'home', 'work')",
             name="ck_contact_phone_kind",
         ),
         UniqueConstraint(
@@ -43,6 +43,7 @@ class ContactPhone(Base):
 
     number: Mapped[str] = mapped_column(String(16))
     kind: Mapped[str] = mapped_column(String(6), server_default="mobile")
+    countrycode: Mapped[str | None] = mapped_column(String(15))
 
 
 class CustomerContacts(Base):
@@ -70,4 +71,5 @@ class CustomerContacts(Base):
         ),
     )
 
-    name: Mapped[str] = mapped_column(String(25))
+    name: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str | None] = mapped_column(String(100))
