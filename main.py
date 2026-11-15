@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
+from app.contacts.router import router as contacts_router
 from app.customers.models import Customer
 from app.customers.router import router as customers_router
 from app.invoices.models import Invoice
@@ -11,6 +12,7 @@ from database import Session
 
 app = FastAPI()
 app.include_router(customers_router)
+app.include_router(contacts_router)
 
 
 class InvoicePreview(BaseModel):

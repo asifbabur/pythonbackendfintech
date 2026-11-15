@@ -24,3 +24,15 @@ class ContactCreate(BaseModel):
         if len(numbers) != len(set(numbers)):
             raise ValueError("Phone numbers must be unique")
         return self
+
+
+class PhoneResponse(PhoneCreate):
+    id: int
+
+
+class ContactResponse(BaseModel):
+    id: int
+    customer_id: int
+    name: str
+    email: str | None
+    phones: list[PhoneResponse]
