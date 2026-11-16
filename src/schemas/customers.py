@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+##test
 class CustomerCreate(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     name: str = Field(min_length=3, max_length=50)
