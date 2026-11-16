@@ -2,7 +2,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from database import engine
-from main import app
+from src.main import app
 
 
 @pytest.fixture
