@@ -1,99 +1,20 @@
-from typing import Literal
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from fastapi import FastAPI
 
-from src.contacts.router import router as contacts_router
-from src.customers.models import Customer
-from src.customers.router import router as customers_router
-from src.invoices.models import Invoice
-from database import Session
-
-app = FastAPI()
-app.include_router(customers_router)
-app.include_router(contacts_router)
+from src.api.endpoints.customers import router as customer_router
+from src.core.config import get_settings
+from src.core.database import engine
 
 
-class InvoicePreview(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-    title: str = Field(min_length=10, max_length=15)
-    customer_id: int = Field(gt=0)
-    amount_minor: int = Field(gt=0, strict=True, description="Invoice amount")
-    currency: Literal["USD"]
-    countrycode: str = Field(default="PK", max_length=15)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        yield
+    finally:
+        await engine.dispose()
 
 
-class InvoiceResponse(InvoicePreview):
-    id: int
+app = FastAPI(title=get_settings().app_name, lifespan=lifespan)
 
-
-@app.post(
-    "/invoices/preview",
-    response_model=InvoicePreview,
-)
-def preview_invoice(invoice: InvoicePreview):
-    return invoice.model_dump()
-
-
-@app.post("/invoices/insert", response_model=InvoiceResponse, status_code=201)
-async def insert_invoice(invoice: InvoicePreview):
-    async with Session.begin() as session:
-        record = await session.get(Customer, invoice.customer_id)
-        if record is None:
-            raise HTTPException(404, "No customer with that ID")
-
-        record = Invoice(**invoice.model_dump())
-        session.add(record)
-        await session.flush()
-        response = InvoiceResponse.model_validate(record, from_attributes=True)
-
-    return response
-
-
-@app.get(
-    "/customer/{customer_id}/invoices",
-    response_model=list[InvoiceResponse],
-)
-async def list_customer_invoices(customer_id: int):
-    async with Session() as session:
-        customer = await session.get(Customer, customer_id)
-
-        if customer is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Customer not found",
-            )
-
-        statement = (
-            select(Invoice)
-            .where(Invoice.customer_id == customer_id)
-            .order_by(Invoice.id)
-        )
-
-        result = await session.scalars(statement)
-
-        return [
-            InvoiceResponse.model_validate(record, from_attributes=True)
-            for record in result.all()
-        ]
-
-
-@app.get(
-    "/invoices/{invoice_id}",
-    response_model=InvoiceResponse,
-)
-async def get_invoice(invoice_id: int):
-    async with Session() as session:
-        record = await session.get(Invoice, invoice_id)
-
-        if record is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Invoice not found",
-            )
-
-        return InvoiceResponse.model_validate(
-            record,
-            from_attributes=True,
-        )
+app.include_router(customer_router)
