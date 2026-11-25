@@ -1,5 +1,6 @@
-.venv/
 .git/
+.venv/
 .env
 .env.*
 **/__pycache__/
+*.tar
